@@ -1,0 +1,15 @@
+C:\Users\admin\Desktop\Programmin\Epidemic\Epidemic\bin\Debug\Epidemic.exe.config
+C:\Users\admin\Desktop\Programmin\Epidemic\Epidemic\bin\Debug\Epidemic.exe
+C:\Users\admin\Desktop\Programmin\Epidemic\Epidemic\bin\Debug\Epidemic.pdb
+C:\Users\admin\Desktop\Programmin\Epidemic\Epidemic\obj\Debug\Epidemic.csproj.AssemblyReference.cache
+C:\Users\admin\Desktop\Programmin\Epidemic\Epidemic\obj\Debug\MainWindow.g.cs
+C:\Users\admin\Desktop\Programmin\Epidemic\Epidemic\obj\Debug\App.g.cs
+C:\Users\admin\Desktop\Programmin\Epidemic\Epidemic\obj\Debug\Epidemic_MarkupCompile.cache
+C:\Users\admin\Desktop\Programmin\Epidemic\Epidemic\obj\Debug\Epidemic_MarkupCompile.lref
+C:\Users\admin\Desktop\Programmin\Epidemic\Epidemic\obj\Debug\MainWindow.baml
+C:\Users\admin\Desktop\Programmin\Epidemic\Epidemic\obj\Debug\Epidemic.g.resources
+C:\Users\admin\Desktop\Programmin\Epidemic\Epidemic\obj\Debug\Epidemic.Properties.Resources.resources
+C:\Users\admin\Desktop\Programmin\Epidemic\Epidemic\obj\Debug\Epidemic.csproj.GenerateResource.cache
+C:\Users\admin\Desktop\Programmin\Epidemic\Epidemic\obj\Debug\Epidemic.csproj.CoreCompileInputs.cache
+C:\Users\admin\Desktop\Programmin\Epidemic\Epidemic\obj\Debug\Epidemic.exe
+C:\Users\admin\Desktop\Programmin\Epidemic\Epidemic\obj\Debug\Epidemic.pdb
