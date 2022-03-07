@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows;
 
 namespace Epidemic
 {
@@ -10,6 +11,8 @@ namespace Epidemic
     {
         public double X, Y;
         public string State;
+        public Vector velocity, acceleration, border;
+        public Point center;
         public People()
         {
 
