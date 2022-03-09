@@ -22,7 +22,7 @@ namespace Epidemic
     public partial class MainWindow : Window
     {
         People[] people;
-        private const int QuantityOfPeople = 10, DiameterOfCircle = 15, BorderThickness1 = 4, maxSpeed = 500, accelerationRange = 100, velocityRange = 1000;
+        private const int QuantityOfPeople = 100, DiameterOfCircle = 15, BorderThickness1 = 4, maxSpeed = 100, accelerationRange = 20, velocityRange = 50, BorderOffset = 40;
         Random rnd;
         Stopwatch stopwatch = new Stopwatch();
         public int frames;
@@ -43,6 +43,7 @@ namespace Epidemic
             UpdateVectors();
             Move(stopwatch.Elapsed);
             DrawAllPeople();
+            //DrawVectors();
             DrawBorder();
             stopwatch.Restart();
             frames++;
@@ -51,24 +52,51 @@ namespace Epidemic
         {
             for(int i = 0;i < QuantityOfPeople; i++)
             {
-                if(people[i].velocity.Length <= maxSpeed && Vector.Multiply(Vector.Add(people[i].velocity, people[i].acceleration), ts.TotalSeconds).Length <= maxSpeed)
+                if (Vector.Add(Vector.Multiply(people[i].acceleration, ts.TotalSeconds), people[i].velocity).Length <= maxSpeed)
                 {
-                    people[i].velocity = Vector.Multiply(Vector.Add(people[i].velocity, people[i].acceleration), ts.TotalSeconds);
-                    people[i].velocity = Vector.Multiply(Vector.Add(people[i].velocity, people[i].border), ts.TotalSeconds);
+                    people[i].velocity = Vector.Add(Vector.Multiply(people[i].acceleration, ts.TotalSeconds), people[i].velocity);
                 }
-                people[i].X += people[i].velocity.X * ts.TotalSeconds;
-                people[i].Y += people[i].velocity.Y * ts.TotalSeconds;
+                if (Vector.Add(Vector.Multiply(people[i].border, ts.TotalSeconds), people[i].velocity).Length <= maxSpeed)
+                {
+                    people[i].velocity = Vector.Add(Vector.Multiply(people[i].border, ts.TotalSeconds), people[i].velocity);
+                }
+                people[i].X = people[i].X + people[i].velocity.X * ts.TotalSeconds;
+                people[i].Y = people[i].Y + people[i].velocity.Y * ts.TotalSeconds;
+                //if (people[i].X > Field.Width)
+                //{
+                //    people[i].X = 0;
+                //}
+                //if (people[i].X < 0)
+                //{
+                //    people[i].X = Field.Width;
+                //}
+                //if (people[i].Y > Field.Height)
+                //{
+                //    people[i].Y = 0;
+                //}
+                //if (people[i].Y < 0)
+                //{
+                //    people[i].Y = Field.Height;
+                //}
             }
         }
         public void UpdateVectors()
         {
             for(int i = 0;i< QuantityOfPeople; i++) {
-                if(frames % 100 == 0)
+                if(frames % 70 == 0)
                 {
                     people[i].acceleration = new Vector(rnd.Next(-accelerationRange, accelerationRange), rnd.Next(-accelerationRange, accelerationRange));
                 }
-                people[i].border = new Vector((1 / Math.Pow(people[i].X + BorderThickness1, 2)) - (1 / Math.Pow(Field.Width - BorderThickness1 - people[i].X, 2)),
-                    (1 / Math.Pow(people[i].Y + BorderThickness1, 2)) - (1 / Math.Pow(Field.Height - BorderThickness1 - people[i].Y, 2)));
+                //people[i].border = new Vector((maxSpeed / Math.Pow(people[i].X + BorderThickness1 + DiameterOfCircle / 2, 1)) - (maxSpeed / Math.Pow(Field.Width - BorderThickness1 - people[i].X - DiameterOfCircle / 2, 1)),
+                //    (maxSpeed / Math.Pow(people[i].Y + BorderThickness1 + DiameterOfCircle / 2, 1)) - (maxSpeed / Math.Pow(Field.Height - BorderThickness1 - people[i].Y - DiameterOfCircle / 2, 1)));
+                people[i].border = new Vector((maxSpeed * maxSpeed / Math.Pow(people[i].X, 2)) - (maxSpeed * maxSpeed / Math.Pow(Field.Width - BorderThickness1 - people[i].X + DiameterOfCircle / 2 - BorderOffset, 2)),
+                    (maxSpeed * maxSpeed / Math.Pow(people[i].Y, 2)) - (maxSpeed * maxSpeed / Math.Pow(Field.Height - BorderThickness1 - people[i].Y + DiameterOfCircle - BorderOffset, 2)));
+                //people[i].border = new Vector((1 / (people[i].X + BorderThickness1)) - (1 / (Field.Width - BorderThickness1 - people[i].X)),
+                //    (1 / (people[i].Y + BorderThickness1)) - (1 / (Field.Height - BorderThickness1 - people[i].Y)));
+                if (people[i].velocity.Length > maxSpeed * 2)
+                {
+                    people[i].velocity = new Vector(0, 0);
+                }
             }
         }
         public void UpdateCenterPoint()
@@ -88,6 +116,34 @@ namespace Epidemic
                 Height = Field.Height - 2*BorderThickness1
             };
             Field.Children.Add(border);
+        }
+        public void DrawVectors()
+        {
+            for(int i = 0;i < QuantityOfPeople; i++)
+            {
+                double startx = people[i].center.X, starty = people[i].center.Y;
+                Line acc = new Line();
+                acc.X1 = startx;
+                acc.Y1 = starty;
+                acc.X2 = startx + people[i].acceleration.X;
+                acc.Y2 = starty + people[i].acceleration.Y;
+                acc.Stroke = Brushes.Red;
+                Line vel = new Line();
+                vel.X1 = startx;
+                vel.Y1 = starty;
+                vel.X2 = startx + people[i].velocity.X;
+                vel.Y2 = starty + people[i].velocity.Y;
+                vel.Stroke = Brushes.Yellow;
+                Line bor = new Line();
+                bor.X1 = startx;
+                bor.Y1 = starty;
+                bor.X2 = startx + people[i].border.X;
+                bor.Y2 = starty + people[i].border.Y;
+                bor.Stroke = Brushes.Green;
+                Field.Children.Add(acc);
+                Field.Children.Add(vel);
+                Field.Children.Add(bor);
+            }
         }
         public void DrawPeople(double x, double y, string state)
         {
