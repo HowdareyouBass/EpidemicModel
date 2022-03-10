@@ -5,9 +5,10 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Epidemic"
         mc:Ignorable="d"
-        Title="MainWindow" Height="626.475" Width="1177.154" Background="#FF020202">
+        Title="MainWindow" Height="927.01" Width="1298.832" Background="#FF020202">
     <Grid>
-        <Canvas x:Name="Field" HorizontalAlignment="Left" Height="500" VerticalAlignment="Top" Width="1000"/>
+        <Canvas x:Name="Field" HorizontalAlignment="Left" Height="801" VerticalAlignment="Top" Width="800"/>
+        <Label x:Name="Test1" Content="Label" HorizontalAlignment="Left" Margin="1102,80,0,0" VerticalAlignment="Top" Foreground="White" FontSize="24" Visibility="Hidden" />
 
     </Grid>
 </Window>

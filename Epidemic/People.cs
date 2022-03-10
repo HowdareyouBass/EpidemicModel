@@ -13,6 +13,7 @@ namespace Epidemic
         public string State;
         public Vector velocity, acceleration, border;
         public Point center;
+        public TimeSpan startTime;
         public People()
         {
 

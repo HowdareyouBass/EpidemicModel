@@ -22,7 +22,7 @@ namespace Epidemic
     public partial class MainWindow : Window
     {
         People[] people;
-        private const int QuantityOfPeople = 100, DiameterOfCircle = 15, BorderThickness1 = 4, maxSpeed = 100, accelerationRange = 20, velocityRange = 50, BorderOffset = 40, TotalTimeOfInfectionInSeconds = 20, InfectionRadius = DiameterOfCircle + 10;
+        private const int QuantityOfPeople = 500, DiameterOfCircle = 8, BorderThickness1 = 4, maxSpeed = 100, accelerationRange = 20, velocityRange = 50, BorderOffset = 40, TotalTimeOfInfectionInSeconds = 5, InfectionRadius = DiameterOfCircle + 10;
         private const double InfectionChance = 0.10;
         Random rnd;
         Stopwatch stopwatch = new Stopwatch();
@@ -36,6 +36,7 @@ namespace Epidemic
             people = new People[QuantityOfPeople];
             rnd = new Random();
             stopwatch.Start();
+            time.Start();
             InitPeople();
             CompositionTarget.Rendering += UpdateFrame;
         }
@@ -43,10 +44,9 @@ namespace Epidemic
         private void UpdateFrame(object sender, EventArgs e)
         {
             Field.Children.Clear();
-            UpdateCenterPoint();
-            UpdateVectors();
+            UpdateAll();
             UpdateInfectedPeople();
-            UpdateLists();
+            UpdateRemovedPeople();
             Move(stopwatch.Elapsed);
             DrawAllPeople();
             //DrawVectors();
@@ -86,37 +86,53 @@ namespace Epidemic
                 //}
             }
         }
-        public void UpdateVectors()
+        public void UpdateRemovedPeople()
         {
-            for(int i = 0;i< QuantityOfPeople; i++) {
-                if(frames % 70 == 0)
+            for(int i = 0;i < InfectedList.Count; i++)
+            {
+                if(people[InfectedList[i]].startTime.TotalSeconds + TotalTimeOfInfectionInSeconds <= time.Elapsed.TotalSeconds)
                 {
-                    people[i].acceleration = new Vector(rnd.Next(-accelerationRange, accelerationRange), rnd.Next(-accelerationRange, accelerationRange));
-                }
-                //people[i].border = new Vector((maxSpeed / Math.Pow(people[i].X + BorderThickness1 + DiameterOfCircle / 2, 1)) - (maxSpeed / Math.Pow(Field.Width - BorderThickness1 - people[i].X - DiameterOfCircle / 2, 1)),
-                //    (maxSpeed / Math.Pow(people[i].Y + BorderThickness1 + DiameterOfCircle / 2, 1)) - (maxSpeed / Math.Pow(Field.Height - BorderThickness1 - people[i].Y - DiameterOfCircle / 2, 1)));
-                people[i].border = new Vector((maxSpeed * maxSpeed / Math.Pow(people[i].X, 2)) - (maxSpeed * maxSpeed / Math.Pow(Field.Width - BorderThickness1 - people[i].X + DiameterOfCircle / 2 - BorderOffset, 2)),
-                    (maxSpeed * maxSpeed / Math.Pow(people[i].Y, 2)) - (maxSpeed * maxSpeed / Math.Pow(Field.Height - BorderThickness1 - people[i].Y + DiameterOfCircle - BorderOffset, 2)));
-                //people[i].border = new Vector((1 / (people[i].X + BorderThickness1)) - (1 / (Field.Width - BorderThickness1 - people[i].X)),
-                //    (1 / (people[i].Y + BorderThickness1)) - (1 / (Field.Height - BorderThickness1 - people[i].Y)));
-                if (people[i].velocity.Length > maxSpeed * 2)
-                {
-                    people[i].velocity = new Vector(0, 0);
+                    people[InfectedList[i]].State = "В";
                 }
             }
         }
-        public void UpdateLists()
+        private void UpdateAll()
         {
-            for(int i = 0;i < QuantityOfPeople; i++)
+            InfectedList.Clear();
+            HealthyList.Clear();
+            for (int i = 0; i < QuantityOfPeople; i++)
             {
-                if(people[i].State == "З")
-                {
-                    InfectedList.Add(i);
-                }
-                if(people[i].State == "НЗ")
-                {
-                    HealthyList.Add(i);
-                }
+                UpdateCenterPoint(i);
+                UpdateVector(i);
+                UpdateList(i);
+            }
+        }
+        public void UpdateVector(int a)
+        {
+            if(frames % 70 == 0)
+            {
+                people[a].acceleration = new Vector(rnd.Next(-accelerationRange, accelerationRange), rnd.Next(-accelerationRange, accelerationRange));
+            }
+            //people[i].border = new Vector((maxSpeed / Math.Pow(people[i].X + BorderThickness1 + DiameterOfCircle / 2, 1)) - (maxSpeed / Math.Pow(Field.Width - BorderThickness1 - people[i].X - DiameterOfCircle / 2, 1)),
+            //    (maxSpeed / Math.Pow(people[i].Y + BorderThickness1 + DiameterOfCircle / 2, 1)) - (maxSpeed / Math.Pow(Field.Height - BorderThickness1 - people[i].Y - DiameterOfCircle / 2, 1)));
+            people[a].border = new Vector((maxSpeed * maxSpeed / Math.Pow(people[a].X, 2)) - (maxSpeed * maxSpeed / Math.Pow(Field.Width - BorderThickness1 - people[a].X + DiameterOfCircle / 2 - BorderOffset, 2)),
+                (maxSpeed * maxSpeed / Math.Pow(people[a].Y, 2)) - (maxSpeed * maxSpeed / Math.Pow(Field.Height - BorderThickness1 - people[a].Y + DiameterOfCircle - BorderOffset, 2)));
+            //people[i].border = new Vector((1 / (people[i].X + BorderThickness1)) - (1 / (Field.Width - BorderThickness1 - people[i].X)),
+            //    (1 / (people[i].Y + BorderThickness1)) - (1 / (Field.Height - BorderThickness1 - people[i].Y)));
+            if (people[a].velocity.Length > maxSpeed * 2)
+            {
+                people[a].velocity = new Vector(0, 0);
+            }
+        }
+        public void UpdateList(int a)
+        {
+            if(people[a].State == "З")
+            {
+                InfectedList.Add(a);
+            }
+            if(people[a].State == "НЗ")
+            {
+                HealthyList.Add(a);
             }
         }
         public double Distance(Point p1,Point p2)
@@ -136,18 +152,16 @@ namespace Epidemic
                             if (rnd.Next(0, 100) <= InfectionChance * 100)
                             {
                                 people[HealthyList[j]].State = "З";
+                                people[HealthyList[j]].startTime = time.Elapsed;
                             }
                         }
                     }
                 }
             }
         }
-        public void UpdateCenterPoint()
+        public void UpdateCenterPoint(int a)
         {
-            for(int i = 0;i < QuantityOfPeople; i++)
-            {
-                people[i].center = new Point(people[i].X + DiameterOfCircle / 2, people[i].Y + DiameterOfCircle / 2);
-            }
+           people[a].center = new Point(people[a].X + DiameterOfCircle / 2, people[a].Y + DiameterOfCircle / 2);
         }
         private void DrawBorder()
         {
@@ -204,7 +218,7 @@ namespace Epidemic
                         man.Fill = new SolidColorBrush(Color.FromArgb(255, 250, 71, 56));
                         break;
                     }
-                case "П":
+                case "В":
                     {
                         man.Fill = new SolidColorBrush(Color.FromArgb(255, 100, 100, 100));
                         break;
@@ -231,6 +245,7 @@ namespace Epidemic
                 people[i].velocity = new Vector(rnd.Next(-velocityRange,velocityRange), rnd.Next(-velocityRange,velocityRange));
             }
             people[0].State = "З";
+            people[0].startTime = new TimeSpan(0, 0, 0);
         }
     }
 }
