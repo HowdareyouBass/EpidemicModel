@@ -7,8 +7,8 @@
         mc:Ignorable="d"
         Title="MainWindow" Height="927.01" Width="1298.832" Background="#FF020202">
     <Grid>
-        <Canvas x:Name="Field" HorizontalAlignment="Left" Height="801" VerticalAlignment="Top" Width="800"/>
+        <Canvas x:Name="Field" HorizontalAlignment="Left" Height="800" VerticalAlignment="Top" Width="800"/>
         <Label x:Name="Test1" Content="Label" HorizontalAlignment="Left" Margin="1102,80,0,0" VerticalAlignment="Top" Foreground="White" FontSize="24" Visibility="Hidden" />
-
+        <Button x:Name="Next" Content="Button" HorizontalAlignment="Left" Margin="977,720,0,0" VerticalAlignment="Top" Width="191" Height="80" FontSize="22" Click="Next_Click"/>
     </Grid>
 </Window>

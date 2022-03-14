@@ -11,7 +11,7 @@ namespace Epidemic
     {
         public double X, Y;
         public string State;
-        public Vector velocity, acceleration, border;
+        public Vector velocity, acceleration, border, socialdiastancing;
         public Point center;
         public TimeSpan startTime;
         public People()
@@ -23,6 +23,10 @@ namespace Epidemic
             X = x;
             Y = y;
             State = s;
+        }
+        public static int CompareByX(People people1,People people2)
+        {
+            return people1.X.CompareTo(people2.X);
         }
     }
 }
