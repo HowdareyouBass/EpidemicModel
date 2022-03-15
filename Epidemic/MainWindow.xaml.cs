@@ -22,12 +22,14 @@ namespace Epidemic
     public partial class MainWindow : Window
     {
         People[] people;
-        private const int aSquare = 25,QuantityOfPeople = 10, DiameterOfCircle = 25, BorderThickness1 = 4, maxSpeed = 100, accelerationRange = 20, velocityRange = 50, BorderOffset = 40, TotalTimeOfInfectionInSeconds = 5, SocialDistancingRadius = 100;
-        private int InfectionRadius = DiameterOfCircle + 30;
-        private double InfectionChance = 0.10;
+        private const int QuantityOfPeople = 400, DiameterOfCircle = 10, BorderThickness1 = 4, maxSpeed = 100, accelerationRange = 20, velocityRange = 50, BorderOffset = 40, TotalTimeOfInfectionInSeconds = 5;
+        private int InfectionRadius = DiameterOfCircle + 20;
+        private int SocialDistancingRadius,RemovedQuantity = 0;
+        private double InfectionChance = 0.20 * 0.1;
         private Random rnd;
         public bool Manual = false;
         List<Point> PossibleCollisionsList = new List<Point>();
+        List<Point> InfGraphPoints = new List<Point>(), RemGraphPoints = new List<Point>();
         Stopwatch stopwatch = new Stopwatch();
         Stopwatch time = new Stopwatch();
         List<int> InfectedList = new List<int>();
@@ -35,12 +37,24 @@ namespace Epidemic
         public int frames;
         public MainWindow()
         {
+            
             InitializeComponent();
+            SocialDistancingRadius = InfectionRadius;
             people = new People[QuantityOfPeople];
             rnd = new Random();
             stopwatch.Start();
             time.Start();
             InitPeople();
+            nextFrame();
+
+            InfGraphPoints.Add(new Point(0, GraphField.Height));
+            InfGraphPoints.Add(new Point(GraphField.Width / 2, GraphField.Height));
+            InfGraphPoints.Add(new Point(GraphField.Width, GraphField.Height));
+
+            RemGraphPoints.Add(new Point(0, 0));
+            RemGraphPoints.Add(new Point(GraphField.Width / 2, 0));
+            RemGraphPoints.Add(new Point(GraphField.Width, 0));
+
             if (!Manual)
             {
                 CompositionTarget.Rendering += UpdateFrame;
@@ -49,6 +63,7 @@ namespace Epidemic
 
         private void UpdateFrame(object sender, EventArgs e)
         {
+            //Main field drawing and logic
             Field.Children.Clear();
             UpdateAll();
             UpdateInfectedPeople();
@@ -58,8 +73,14 @@ namespace Epidemic
             DrawAllPeople();
             DrawVectors(false, false, false, true);
             DrawBorder();
+            //Graph field drawing and logic
+            GraphField.Children.Clear();
+            UpdateGraph();
+            DrawGraph();
+
             stopwatch.Restart();
             frames++;
+            //Test1.Content = "Number 1:" + PossibleCollisionsList[0].X.ToString() + "\n" + "Nubmer 2:" + PossibleCollisionsList[0].Y.ToString();
         }
         private void nextFrame()
         {
@@ -109,6 +130,7 @@ namespace Epidemic
         {
             InfectedList.Clear();
             HealthyList.Clear();
+            RemovedQuantity = 0;
             for (int i = 0; i < QuantityOfPeople; i++)
             {
                 UpdateCenterPoint(i);
@@ -140,6 +162,7 @@ namespace Epidemic
         private void UpdateSocialDistancing()
         {
             people = Sorting();
+            PossibleCollisionsList.Clear();
             double first;
             double last;
             for(int i = 0; i < QuantityOfPeople; i++)
@@ -183,11 +206,16 @@ namespace Epidemic
             {
                 HealthyList.Add(a);
             }
+            if(people[a].State == "В")
+            {
+                RemovedQuantity++;
+            }
         }
 
         private void Next_Click(object sender, RoutedEventArgs e)
         {
-            nextFrame();
+            //nextFrame();
+            CompositionTarget.Rendering += UpdateFrame;
         }
 
         public double Distance(Point p1,Point p2)
@@ -200,19 +228,16 @@ namespace Epidemic
         }
         public void UpdateInfectedPeople()
         {
-            if(frames % 10 == 0)
+            for (int i = 0; i < InfectedList.Count; i++)
             {
-                for (int i = 0; i < InfectedList.Count; i++)
+                for (int j = 0; j < HealthyList.Count; j++)
                 {
-                    for (int j = 0; j < HealthyList.Count; j++)
+                    if (Distance(people[InfectedList[i]].center, people[HealthyList[j]].center) < DiameterOfCircle + InfectionRadius)
                     {
-                        if (Distance(people[InfectedList[i]].center, people[HealthyList[j]].center) < DiameterOfCircle + InfectionRadius)
+                        if (rnd.Next(0, 100) <= InfectionChance * 100)
                         {
-                            if (rnd.Next(0, 100) <= InfectionChance * 100)
-                            {
-                                people[HealthyList[j]].State = "З";
-                                people[HealthyList[j]].startTime = time.Elapsed;
-                            }
+                            people[HealthyList[j]].State = "З";
+                            people[HealthyList[j]].startTime = time.Elapsed;
                         }
                     }
                 }
@@ -232,6 +257,39 @@ namespace Epidemic
                 Height = Field.Height - 2*BorderThickness1
             };
             Field.Children.Add(border);
+        }
+        public void UpdateGraph()
+        {
+            double part = GraphField.Width / (InfGraphPoints.Count - 1), PixelPerPercent = (double)GraphField.Height / 100;
+            InfGraphPoints.Insert(InfGraphPoints.Count - 2, new Point(1,GraphField.Height -  (100 * PixelPerPercent * ((double)InfectedList.Count / QuantityOfPeople))));
+            for(int i = 1;i < InfGraphPoints.Count - 1; i++)
+            {
+                InfGraphPoints[i] = new Point(part * i, InfGraphPoints[i].Y);
+            }
+            RemGraphPoints.Insert(RemGraphPoints.Count - 2, new Point(1, 100 * PixelPerPercent * ((double)RemovedQuantity / QuantityOfPeople)));
+            for(int i = 1;i < RemGraphPoints.Count - 1; i++)
+            {
+                RemGraphPoints[i] = new Point(part * i, RemGraphPoints[i].Y);
+            }
+        }
+        public void DrawGraph()
+        {
+            Polyline InfectedGraph = new Polyline();
+            InfectedGraph.Fill = Brushes.Red;
+            InfectedGraph.Stroke = Brushes.Red;
+            for(int i = 0;i < InfGraphPoints.Count; i++)
+            {
+                InfectedGraph.Points.Add(InfGraphPoints[i]);
+            }
+            GraphField.Children.Add(InfectedGraph);
+            Polyline RemovedGraph = new Polyline();
+            RemovedGraph.Fill = new SolidColorBrush(Color.FromArgb(255, 100, 100, 100));
+            RemovedGraph.Stroke = new SolidColorBrush(Color.FromArgb(255, 100, 100, 100));
+            for(int i = 0;i < RemGraphPoints.Count; i++)
+            {
+                RemovedGraph.Points.Add(RemGraphPoints[i]);
+            }
+            GraphField.Children.Add(RemovedGraph);
         }
         public void DrawVectors(bool drawacc, bool drawvel, bool drawbor, bool drawsocdis)
         {
@@ -288,12 +346,13 @@ namespace Epidemic
             switch (state){
                 case "НЗ":
                     {
-                        man.Fill = new SolidColorBrush(Color.FromArgb(255, 87, 175, 250));
+                        man.Fill = new SolidColorBrush(Color.FromArgb(240, 240, 240, 250));
                         break;
                     }
                 case "З":
                     {
                         man.Fill = new SolidColorBrush(Color.FromArgb(255, 250, 71, 56));
+                        //man.Fill = new SolidColorBrush(Color.FromArgb(240, 240, 240, 250));
                         break;
                     }
                 case "В":
