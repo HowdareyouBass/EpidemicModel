@@ -25,7 +25,7 @@ namespace Epidemic
         private const int QuantityOfPeople = 400, DiameterOfCircle = 10, BorderThickness1 = 4, maxSpeed = 100, accelerationRange = 20, velocityRange = 50, BorderOffset = 40, TotalTimeOfInfectionInSeconds = 5, TotaltimeOfQuaranteenInSeconds = 2;
         private int InfectionRadius = (DiameterOfCircle + 20) / 2;
         private int SocialDistancingRadius,RemovedQuantity = 0;
-        private double InfectionChance = 0.10 * 0.1;
+        private double InfectionChance = 0.10 * 0.1, NotTestedChance = 0, VaccinatedPercentage = 0.5;
         private Random rnd;
         public bool Manual = false,EpidemicStarted = false;
         List<Point> PossibleCollisionsList = new List<Point>();
@@ -37,7 +37,6 @@ namespace Epidemic
         public int frames;
         public MainWindow()
         {
-            
             InitializeComponent();
             SocialDistancingRadius = InfectionRadius;
             people = new People[QuantityOfPeople];
@@ -45,7 +44,7 @@ namespace Epidemic
             stopwatch.Start();
             time.Start();
             InitPeople();
-            nextFrame();
+            NextFrame();
 
             InfGraphPoints.Add(new Point(0, GraphField.Height));
             InfGraphPoints.Add(new Point(GraphField.Width / 2, GraphField.Height));
@@ -80,13 +79,13 @@ namespace Epidemic
             DrawGraph();
             if(InfectedList.Count > 20)
             {
-                EpidemicStarted = true;
+                //EpidemicStarted = true;
             }
             stopwatch.Restart();
             frames++;
             //Test1.Content = "Number 1:" + PossibleCollisionsList[0].X.ToString() + "\n" + "Nubmer 2:" + PossibleCollisionsList[0].Y.ToString();
         }
-        private void nextFrame()
+        private void NextFrame()
         {
             Field.Children.Clear();
             UpdateAll();
@@ -139,7 +138,7 @@ namespace Epidemic
                 {
                     people[InfectedList[i]].State = "В";
                 }
-                if(people[InfectedList[i]].startTime.TotalSeconds + TotaltimeOfQuaranteenInSeconds <= time.Elapsed.TotalSeconds && !people[InfectedList[i]].BeingMoved && EpidemicStarted)
+                if(people[InfectedList[i]].startTime.TotalSeconds + TotaltimeOfQuaranteenInSeconds <= time.Elapsed.TotalSeconds && !people[InfectedList[i]].BeingMoved && EpidemicStarted && !people[InfectedList[i]].NotTested)
                 {
                     Quaranteen(InfectedList[i]);
                 }
@@ -261,11 +260,15 @@ namespace Epidemic
             {
                 for (int j = 0; j < HealthyList.Count; j++)
                 {
-                    if (Distance(people[InfectedList[i]].center, people[HealthyList[j]].center) < DiameterOfCircle + InfectionRadius && !people[InfectedList[i]].BeingMoved)
+                    if (Distance(people[InfectedList[i]].center, people[HealthyList[j]].center) < DiameterOfCircle + InfectionRadius && !people[InfectedList[i]].BeingMoved && !people[HealthyList[j]].Vaccinated)
                     {
                         if (rnd.Next(0, 100) <= InfectionChance * 100)
                         {
                             people[HealthyList[j]].State = "З";
+                            if(rnd.Next(0,100) <= NotTestedChance * 100)
+                            {
+                                people[HealthyList[j]].NotTested = true;
+                            }
                             people[HealthyList[j]].startTime = time.Elapsed;
                         }
                     }
@@ -282,16 +285,15 @@ namespace Epidemic
             {
                 Stroke = new SolidColorBrush(Color.FromArgb(255, 200, 200, 200)),
                 StrokeThickness = BorderThickness1,
-                Width = Field.Width - 2 * BorderThickness1,
-                Height = Field.Height - 2 * BorderThickness1
+                Width = Field.Width - (2 * BorderThickness1),
+                Height = Field.Height - (2 * BorderThickness1)
             };
             Rectangle quarborder = new Rectangle()
             {
                 Stroke = new SolidColorBrush(Color.FromRgb(250, 14, 23)),
                 StrokeThickness = BorderThickness1,
-                Width = 100,
-                Height = 100,
-                Margin = new Thickness(1000, 2000, 0, 0),
+                Width = QuaranteenZone.Width - (2 * BorderThickness1),
+                Height = QuaranteenZone.Height - (2 * BorderThickness1)
             };
             QuaranteenZone.Children.Add(quarborder);
             Field.Children.Add(border);
@@ -299,7 +301,7 @@ namespace Epidemic
         public void UpdateGraph()
         {
             double part = GraphField.Width / (InfGraphPoints.Count - 1), PixelPerPercent = (double)GraphField.Height / 100;
-            InfGraphPoints.Insert(InfGraphPoints.Count - 2, new Point(1,GraphField.Height -  (100 * PixelPerPercent * ((double)InfectedList.Count / QuantityOfPeople))));
+            InfGraphPoints.Insert(InfGraphPoints.Count - 2, new Point(1, GraphField.Height - (100 * PixelPerPercent * ((double)InfectedList.Count / QuantityOfPeople))));
             for(int i = 1;i < InfGraphPoints.Count - 1; i++)
             {
                 InfGraphPoints[i] = new Point(part * i, InfGraphPoints[i].Y);
@@ -376,7 +378,7 @@ namespace Epidemic
                 }
             }
         }
-        public void DrawPeople(double x, double y, string state)
+        public void DrawPeople(double x, double y, string state, bool nottested, bool vac)
         {
             Ellipse man = new Ellipse();
             man.Width = man.Height = DiameterOfCircle;
@@ -385,12 +387,20 @@ namespace Epidemic
                 case "НЗ":
                     {
                         man.Fill = new SolidColorBrush(Color.FromArgb(240, 240, 240, 250));
+                        if (vac)
+                        {
+                            man.Stroke = Brushes.Blue;
+                        }
                         break;
                     }
                 case "З":
                     {
                         man.Fill = new SolidColorBrush(Color.FromArgb(255, 250, 71, 56));
                         //man.Fill = new SolidColorBrush(Color.FromArgb(240, 240, 240, 250));
+                        if (nottested)
+                        {
+                            man.Stroke = Brushes.Yellow;
+                        }
                         break;
                     }
                 case "В":
@@ -409,7 +419,7 @@ namespace Epidemic
         {
             for(int i = 0;i < QuantityOfPeople; i++)
             {
-                DrawPeople(people[i].X, people[i].Y, people[i].State);
+                DrawPeople(people[i].X, people[i].Y, people[i].State, people[i].NotTested, people[i].Vaccinated);
             }
         }
         public void InitPeople()
@@ -422,8 +432,13 @@ namespace Epidemic
                     people[i] = new People(rnd.Next(BorderThickness1, (int)Field.Width - DiameterOfCircle - BorderThickness1), rnd.Next(BorderThickness1, (int)Field.Height) - DiameterOfCircle - BorderThickness1, "НЗ");
                 }
                 people[i].velocity = new Vector(rnd.Next(-velocityRange,velocityRange), rnd.Next(-velocityRange,velocityRange));
+                if(rnd.Next(0,100) <= VaccinatedPercentage * 100)
+                {
+                    people[i].Vaccinated = true;
+                }
             }
             people[0].State = "З";
+            people[0].Vaccinated = false;
             people[0].startTime = new TimeSpan(0, 0, 0);
         }
     }
