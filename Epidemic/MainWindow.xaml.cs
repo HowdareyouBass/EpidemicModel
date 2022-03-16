@@ -22,12 +22,12 @@ namespace Epidemic
     public partial class MainWindow : Window
     {
         People[] people;
-        private const int QuantityOfPeople = 400, DiameterOfCircle = 10, BorderThickness1 = 4, maxSpeed = 100, accelerationRange = 20, velocityRange = 50, BorderOffset = 40, TotalTimeOfInfectionInSeconds = 5;
-        private int InfectionRadius = DiameterOfCircle + 20;
+        private const int QuantityOfPeople = 400, DiameterOfCircle = 10, BorderThickness1 = 4, maxSpeed = 100, accelerationRange = 20, velocityRange = 50, BorderOffset = 40, TotalTimeOfInfectionInSeconds = 5, TotaltimeOfQuaranteenInSeconds = 2;
+        private int InfectionRadius = (DiameterOfCircle + 20) / 2;
         private int SocialDistancingRadius,RemovedQuantity = 0;
-        private double InfectionChance = 0.20 * 0.1;
+        private double InfectionChance = 0.10 * 0.1;
         private Random rnd;
-        public bool Manual = false;
+        public bool Manual = false,EpidemicStarted = false;
         List<Point> PossibleCollisionsList = new List<Point>();
         List<Point> InfGraphPoints = new List<Point>(), RemGraphPoints = new List<Point>();
         Stopwatch stopwatch = new Stopwatch();
@@ -65,6 +65,7 @@ namespace Epidemic
         {
             //Main field drawing and logic
             Field.Children.Clear();
+            QuaranteenZone.Children.Clear();
             UpdateAll();
             UpdateInfectedPeople();
             UpdateRemovedPeople();
@@ -77,7 +78,10 @@ namespace Epidemic
             GraphField.Children.Clear();
             UpdateGraph();
             DrawGraph();
-
+            if(InfectedList.Count > 20)
+            {
+                EpidemicStarted = true;
+            }
             stopwatch.Restart();
             frames++;
             //Test1.Content = "Number 1:" + PossibleCollisionsList[0].X.ToString() + "\n" + "Nubmer 2:" + PossibleCollisionsList[0].Y.ToString();
@@ -100,20 +104,31 @@ namespace Epidemic
         {
             for(int i = 0;i < QuantityOfPeople; i++)
             {
-                if (Vector.Add(Vector.Multiply(people[i].acceleration, ts.TotalSeconds), people[i].velocity).Length <= maxSpeed)
+                if (!people[i].Locked)
                 {
-                    people[i].velocity = Vector.Add(Vector.Multiply(people[i].acceleration, ts.TotalSeconds), people[i].velocity);
+                    if (people[i].BeingMoved && Vector.Add(Vector.Multiply(people[i].acceleration, ts.TotalSeconds), people[i].velocity).Length <= maxSpeed * 6)
+                    {
+                        people[i].velocity = Vector.Add(Vector.Multiply(people[i].acceleration, ts.TotalSeconds), people[i].velocity);
+                    }
+                    if (Vector.Add(Vector.Multiply(people[i].acceleration, ts.TotalSeconds), people[i].velocity).Length <= maxSpeed)
+                    {
+                        people[i].velocity = Vector.Add(Vector.Multiply(people[i].acceleration, ts.TotalSeconds), people[i].velocity);
+                    }
+                    if (Vector.Add(Vector.Multiply(people[i].border, ts.TotalSeconds), people[i].velocity).Length <= maxSpeed && !people[i].BeingMoved)
+                    {
+                        people[i].velocity = Vector.Add(Vector.Multiply(people[i].border, ts.TotalSeconds), people[i].velocity);
+                    }
+                    if (Vector.Add(Vector.Multiply(people[i].socialdiastancing, ts.TotalSeconds), people[i].velocity).Length <= maxSpeed && !people[i].BeingMoved)
+                    {
+                        people[i].velocity = Vector.Add(Vector.Multiply(people[i].socialdiastancing, ts.TotalSeconds), people[i].velocity);
+                    }
+                    if (people[i].BeingMoved && Distance(people[i].X,people[i].Y,people[i].target.X,people[i].target.Y) <= 20)
+                    {
+                        people[i].Locked = true;
+                    }
+                    people[i].X = people[i].X + people[i].velocity.X * ts.TotalSeconds;
+                    people[i].Y = people[i].Y + people[i].velocity.Y * ts.TotalSeconds;
                 }
-                if (Vector.Add(Vector.Multiply(people[i].border, ts.TotalSeconds), people[i].velocity).Length <= maxSpeed)
-                {
-                    people[i].velocity = Vector.Add(Vector.Multiply(people[i].border, ts.TotalSeconds), people[i].velocity);
-                }
-                if (Vector.Add(Vector.Multiply(people[i].socialdiastancing, ts.TotalSeconds), people[i].velocity).Length <= maxSpeed)
-                {
-                    people[i].velocity = Vector.Add(Vector.Multiply(people[i].socialdiastancing, ts.TotalSeconds), people[i].velocity);
-                }
-                people[i].X = people[i].X + people[i].velocity.X * ts.TotalSeconds;
-                people[i].Y = people[i].Y + people[i].velocity.Y * ts.TotalSeconds;
             }
         }
         public void UpdateRemovedPeople()
@@ -124,7 +139,18 @@ namespace Epidemic
                 {
                     people[InfectedList[i]].State = "В";
                 }
+                if(people[InfectedList[i]].startTime.TotalSeconds + TotaltimeOfQuaranteenInSeconds <= time.Elapsed.TotalSeconds && !people[InfectedList[i]].BeingMoved && EpidemicStarted)
+                {
+                    Quaranteen(InfectedList[i]);
+                }
             }
+        }
+        public void Quaranteen(int a)
+        {
+            people[a].BeingMoved = true;
+            people[a].target = new Point(Field.Width + 30 + QuaranteenZone.Width / 2,Field.Height - QuaranteenZone.Height/2);
+            people[a].velocity = new Vector(0, 0);
+            people[a].acceleration = new Vector((people[a].target.X - people[a].X) / 2, (people[a].target.Y - people[a].Y) / 2);
         }
         private void UpdateAll()
         {
@@ -136,7 +162,7 @@ namespace Epidemic
                 UpdateCenterPoint(i);
                 UpdateVector(i);
                 UpdateList(i);
-                if (people[i].X > Field.Width || people[i].X < -10 || people[i].Y > Field.Height || people[i].Y < -10) {
+                if ((people[i].X > Field.Width || people[i].X < -10 || people[i].Y > Field.Height || people[i].Y < -10) && !people[i].BeingMoved) {
                     people[i].X = 100;
                     people[i].Y = 100;
                 }
@@ -185,15 +211,18 @@ namespace Epidemic
         }
         public void UpdateVector(int a)
         {
-            if(frames % 70 == 0)
+            if (!people[a].BeingMoved)
             {
-                people[a].acceleration = new Vector(rnd.Next(-accelerationRange, accelerationRange), rnd.Next(-accelerationRange, accelerationRange));
-            }
-            people[a].border = new Vector((maxSpeed * maxSpeed / Math.Pow(people[a].X, 2)) - (maxSpeed * maxSpeed / Math.Pow(Field.Width - BorderThickness1 - people[a].X + DiameterOfCircle / 2 - BorderOffset, 2)),
-                (maxSpeed * maxSpeed / Math.Pow(people[a].Y, 2)) - (maxSpeed * maxSpeed / Math.Pow(Field.Height - BorderThickness1 - people[a].Y + DiameterOfCircle - BorderOffset, 2)));
-            if (people[a].velocity.Length > maxSpeed * 2)
-            {
-                people[a].velocity = new Vector(0, 0);
+                if (frames % 70 == 0)
+                {
+                    people[a].acceleration = new Vector(rnd.Next(-accelerationRange, accelerationRange), rnd.Next(-accelerationRange, accelerationRange));
+                }
+                people[a].border = new Vector((maxSpeed * maxSpeed / Math.Pow(people[a].X, 2)) - (maxSpeed * maxSpeed / Math.Pow(Field.Width - BorderThickness1 - people[a].X + DiameterOfCircle / 2 - BorderOffset, 2)),
+                    (maxSpeed * maxSpeed / Math.Pow(people[a].Y, 2)) - (maxSpeed * maxSpeed / Math.Pow(Field.Height - BorderThickness1 - people[a].Y + DiameterOfCircle - BorderOffset, 2)));
+                if (people[a].velocity.Length > maxSpeed * 2)
+                {
+                    people[a].velocity = new Vector(0, 0);
+                }
             }
         }
         public void UpdateList(int a)
@@ -232,7 +261,7 @@ namespace Epidemic
             {
                 for (int j = 0; j < HealthyList.Count; j++)
                 {
-                    if (Distance(people[InfectedList[i]].center, people[HealthyList[j]].center) < DiameterOfCircle + InfectionRadius)
+                    if (Distance(people[InfectedList[i]].center, people[HealthyList[j]].center) < DiameterOfCircle + InfectionRadius && !people[InfectedList[i]].BeingMoved)
                     {
                         if (rnd.Next(0, 100) <= InfectionChance * 100)
                         {
@@ -251,11 +280,20 @@ namespace Epidemic
         {
             Rectangle border = new Rectangle()
             {
-                Stroke = new SolidColorBrush(Color.FromArgb(255,200,200,200)),
+                Stroke = new SolidColorBrush(Color.FromArgb(255, 200, 200, 200)),
                 StrokeThickness = BorderThickness1,
-                Width = Field.Width - 2*BorderThickness1,
-                Height = Field.Height - 2*BorderThickness1
+                Width = Field.Width - 2 * BorderThickness1,
+                Height = Field.Height - 2 * BorderThickness1
             };
+            Rectangle quarborder = new Rectangle()
+            {
+                Stroke = new SolidColorBrush(Color.FromRgb(250, 14, 23)),
+                StrokeThickness = BorderThickness1,
+                Width = 100,
+                Height = 100,
+                Margin = new Thickness(1000, 2000, 0, 0),
+            };
+            QuaranteenZone.Children.Add(quarborder);
             Field.Children.Add(border);
         }
         public void UpdateGraph()
@@ -379,6 +417,10 @@ namespace Epidemic
             for(int i = 0;i < QuantityOfPeople;i++)
             {
                 people[i] = new People(rnd.Next(BorderThickness1,(int)Field.Width - DiameterOfCircle - BorderThickness1),rnd.Next(BorderThickness1,(int)Field.Height) - DiameterOfCircle - BorderThickness1,"НЗ");
+                while(people[i].X == 0 || people[i].Y == 0)
+                {
+                    people[i] = new People(rnd.Next(BorderThickness1, (int)Field.Width - DiameterOfCircle - BorderThickness1), rnd.Next(BorderThickness1, (int)Field.Height) - DiameterOfCircle - BorderThickness1, "НЗ");
+                }
                 people[i].velocity = new Vector(rnd.Next(-velocityRange,velocityRange), rnd.Next(-velocityRange,velocityRange));
             }
             people[0].State = "З";

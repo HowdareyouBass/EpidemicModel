@@ -12,7 +12,8 @@ namespace Epidemic
         public double X, Y;
         public string State;
         public Vector velocity, acceleration, border, socialdiastancing;
-        public Point center;
+        public bool BeingMoved,Locked;
+        public Point center,target;
         public TimeSpan startTime;
         public People()
         {
@@ -23,6 +24,8 @@ namespace Epidemic
             X = x;
             Y = y;
             State = s;
+            BeingMoved = false;
+            Locked = false;
         }
         public static int CompareByX(People people1,People people2)
         {
